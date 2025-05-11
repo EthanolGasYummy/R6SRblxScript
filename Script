@@ -228,77 +228,86 @@ UserInputService.InputBegan:Connect(function(input)
 	end
 end)
 
--- Updated Roblox ESP Script: Health and Name Text Above Heads (Non-Spamming)
+-- Smooth and Clean ESP: Name and Health Bar (No Lag, No Stuck UI)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
 
 local healthText = {}
 local nameText = {}
 
-function updateHealth(player)
-	if not healthTextEnabled then return end
-	if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Head") then
-		local head = player.Character.Head
-		local humanoid = player.Character.Humanoid
-		local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
+function updateESP(player)
+	local character = player.Character
+	if not character or not character:FindFirstChild("Head") or not character:FindFirstChild("Humanoid") then
+		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
+		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
+		return
+	end
 
-		if not healthText[player] then
-			local bar = Drawing.new("Line")
-			bar.Thickness = 2
-			bar.Color = Color3.fromRGB(0, 255, 0)
-			bar.Visible = true
-			healthText[player] = bar
-		end
+	local head = character.Head
+	local humanoid = character.Humanoid
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
 
-		local bar = healthText[player]
-		if onScreen then
-			local healthPercent = humanoid.Health / humanoid.MaxHealth
-			bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
-			bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
-			bar.Visible = true
-		else
-			bar.Visible = false
-		end
+	-- Health Bar
+	if not healthText[player] then
+		local bar = Drawing.new("Line")
+		bar.Thickness = 2
+		bar.Color = Color3.fromRGB(0, 255, 0)
+		bar.Visible = true
+		healthText[player] = bar
+	end
+
+	local bar = healthText[player]
+	if onScreen and humanoid.Health > 0 then
+		local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+		bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
+		bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
+		bar.Visible = true
+	else
+		bar.Visible = false
+	end
+
+	-- Name Text
+	if not nameText[player] then
+		local label = Drawing.new("Text")
+		label.Size = 14
+		label.Outline = true
+		label.Center = true
+		label.Color = Color3.fromRGB(255, 255, 255)
+		label.Visible = true
+		nameText[player] = label
+	end
+
+	local label = nameText[player]
+	if onScreen and humanoid.Health > 0 then
+		label.Position = Vector2.new(screenPos.X, screenPos.Y - 15)
+		label.Text = player.Name
+		label.Visible = true
+	else
+		label.Visible = false
 	end
 end
 
-function updateName(player)
-	if not nameTextEnabled then return end
-	if player.Character and player.Character:FindFirstChild("Head") then
-		local head = player.Character.Head
-		local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
-
-		if not nameText[player] then
-			local label = Drawing.new("Text")
-			label.Size = 14
-			label.Outline = true
-			label.Center = true
-			label.Color = Color3.fromRGB(255, 255, 255)
-			label.Visible = true
-			nameText[player] = label
-		end
-
-		local label = nameText[player]
-		if onScreen then
-			label.Position = Vector2.new(screenPos.X, screenPos.Y)
-			label.Text = player.Name
-			label.Visible = true
-		else
-			label.Visible = false
+-- Frame-based Update for Smooth Movement
+RunService.RenderStepped:Connect(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			updateESP(player)
 		end
 	end
-end
 
--- Update loop
-task.spawn(function()
-	while true do
-		for _, player in pairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer then
-				updateHealth(player)
-				updateName(player)
-			end
+	-- Cleanup ESP for players that left
+	for player, text in pairs(nameText) do
+		if not Players:FindFirstChild(player.Name) then
+			text:Remove()
+			nameText[player] = nil
 		end
-		task.wait(0.1)
+	end
+	for player, line in pairs(healthText) do
+		if not Players:FindFirstChild(player.Name) then
+			line:Remove()
+			healthText[player] = nil
+		end
 	end
 end)

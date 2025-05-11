@@ -249,7 +249,7 @@ function updateHealth(player)
 
 	local head = player.Character.Head
 	local humanoid = player.Character.Humanoid
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.3, 0)) -- moved up here
 
 	if not healthText[player] then
 		local bar = Drawing.new("Line")
@@ -303,7 +303,6 @@ function updateName(player)
 	end
 end
 
--- Frame-by-frame smooth update
 RunService.RenderStepped:Connect(function()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then

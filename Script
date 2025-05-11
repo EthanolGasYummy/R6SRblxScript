@@ -89,6 +89,7 @@ local espEnabled = true
 local aimbotEnabled = true
 local espColor = Color3.fromRGB(255, 0, 0)
 local highlights = {}
+local espTexts = {}
 
 local espBtn = createButton("Toggle ESP (ON)", 10)
 local aimbotBtn = createButton("Toggle Aimbot (ON)", 60)
@@ -126,12 +127,26 @@ function createCham(player)
 		highlight.Parent = game.CoreGui
 		highlights[player] = highlight
 	end
+
+	if player.Character and not espTexts[player] then
+		local text = Drawing.new("Text")
+		text.Size = 16
+		text.Center = true
+		text.Outline = true
+		text.Color = espColor
+		text.Visible = true
+		espTexts[player] = text
+	end
 end
 
 function removeCham(player)
 	if highlights[player] then
 		highlights[player]:Destroy()
 		highlights[player] = nil
+	end
+	if espTexts[player] then
+		espTexts[player]:Remove()
+		espTexts[player] = nil
 	end
 end
 
@@ -153,6 +168,26 @@ task.spawn(function()
 	while true do
 		refreshChams()
 		task.wait(1)
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+	for player, text in pairs(espTexts) do
+		if player and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and espEnabled then
+			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 0.5, 0))
+			if onScreen then
+				text.Position = Vector2.new(headPos.X, headPos.Y)
+				text.Text = player.DisplayName .. " [" .. math.floor(player.Character.Humanoid.Health) .. " HP]"
+				text.Color = espColor
+				text.Visible = true
+			else
+				text.Visible = false
+			end
+		elseif text then
+			text.Visible = false
+		end
 	end
 end)
 
@@ -196,7 +231,6 @@ function getClosestHead()
 end
 
 RunService.RenderStepped:Connect(function()
-	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 	if aiming then
 		local targetHead = getClosestHead()
 		if targetHead then

@@ -1,234 +1,8 @@
--- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
 
--- Drawing FOV
-local fovSizes = {80, 120, 180} -- FOV sizes to cycle through
-local fovIndex = 1
-local currentFov = fovSizes[fovIndex]
-
-local fovCircle = Drawing.new("Circle")
-fovCircle.Color = Color3.fromRGB(160, 32, 240)
-fovCircle.Thickness = 2
-fovCircle.Transparency = 0.5
-fovCircle.Filled = false
-fovCircle.Radius = currentFov
-fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-fovCircle.Visible = true
-
--- Text label for FOV
-local fovText = Drawing.new("Text")
-fovText.Position = Vector2.new(10, Camera.ViewportSize.Y - 40)
-fovText.Size = 24
-fovText.Center = false
-fovText.Outline = true
-fovText.Color = Color3.fromRGB(255, 255, 255)
-fovText.Text = "FOV: " .. currentFov .. " 🎯"
-fovText.Visible = true
-
--- GUI Setup
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "AimbotESPUI"
-gui.ResetOnSpawn = false
-
-local background = Instance.new("Frame")
-background.Size = UDim2.new(0, 220, 0, 260)
-background.Position = UDim2.new(0.5, -110, 0.5, -130)
-background.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
-background.BackgroundTransparency = 0.3
-background.BorderSizePixel = 0
-background.Parent = gui
-background.Active = true
-
-local dragging, dragInput, dragStart, startPos
-background.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = background.Position
-	end
-end)
-
-background.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		background.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-
-local function createButton(text, yOffset)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 200, 0, 40)
-	btn.Position = UDim2.new(0, 10, 0, yOffset)
-	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.TextSize = 18
-	btn.Font = Enum.Font.SourceSansBold
-	btn.Text = text
-	btn.Parent = background
-	btn.AutoButtonColor = true
-	btn.BorderSizePixel = 0
-	btn.ClipsDescendants = true
-
-	local uicorner = Instance.new("UICorner", btn)
-	uicorner.CornerRadius = UDim.new(0, 6)
-
-	return btn
-end
-
--- GUI button handlers
-local espEnabled = true
-local aimbotEnabled = true
-local healthTextEnabled = true
-local nameTextEnabled = true
-local espColor = Color3.fromRGB(255, 0, 0)
-local highlights = {}
-
-local espBtn = createButton("Toggle ESP (ON)", 10)
-local aimbotBtn = createButton("Toggle Aimbot (ON)", 60)
-local healthBtn = createButton("Toggle Health Text (ON)", 110)
-local nameBtn = createButton("Toggle Name Text (ON)", 160)
-local colorBtn = createButton("Change ESP Color", 210)
-
-espBtn.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-	espBtn.Text = espEnabled and "Toggle ESP (ON)" or "Toggle ESP (OFF)"
-end)
-
-aimbotBtn.MouseButton1Click:Connect(function()
-	aimbotEnabled = not aimbotEnabled
-	aimbotBtn.Text = aimbotEnabled and "Toggle Aimbot (ON)" or "Toggle Aimbot (OFF)"
-end)
-
-healthBtn.MouseButton1Click:Connect(function()
-	healthTextEnabled = not healthTextEnabled
-	healthBtn.Text = healthTextEnabled and "Toggle Health Text (ON)" or "Toggle Health Text (OFF)"
-end)
-
-nameBtn.MouseButton1Click:Connect(function()
-	nameTextEnabled = not nameTextEnabled
-	nameBtn.Text = nameTextEnabled and "Toggle Name Text (ON)" or "Toggle Name Text (OFF)"
-end)
-
-colorBtn.MouseButton1Click:Connect(function()
-	espColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and highlights[player] then
-			highlights[player].FillColor = espColor
-		end
-	end
-end)
-
--- Cham Logic
-function createCham(player)
-	if player.Character and not highlights[player] then
-		local highlight = Instance.new("Highlight")
-		highlight.Adornee = player.Character
-		highlight.FillColor = espColor
-		highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-		highlight.FillTransparency = 0.4
-		highlight.OutlineTransparency = 0
-		highlight.Parent = game.CoreGui
-		highlights[player] = highlight
-	end
-end
-
-function removeCham(player)
-	if highlights[player] then
-		highlights[player]:Destroy()
-		highlights[player] = nil
-	end
-end
-
-function refreshChams()
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and espEnabled then
-			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				createCham(player)
-			else
-				removeCham(player)
-			end
-		else
-			removeCham(player)
-		end
-	end
-end
-
-task.spawn(function()
-	while true do
-		refreshChams()
-		task.wait(1)
-	end
-end)
-
--- Aimbot
-local aiming = false
-local targetPlayer = nil
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
-		aiming = true
-	end
-	if input.KeyCode == Enum.KeyCode.LeftAlt then
-		fovIndex = (fovIndex % #fovSizes) + 1
-		currentFov = fovSizes[fovIndex]
-		fovCircle.Radius = currentFov
-		fovText.Text = "FOV: " .. currentFov .. " 🎯"
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		aiming = false
-		targetPlayer = nil -- Remove targeting when right-click is released
-	end
-end)
-
-function getClosestHead()
-	local closestPlayer, closestDistance = nil, math.huge
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-			local head = player.Character.Head
-			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-			if onScreen then
-				local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-				local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-				if dist < currentFov and dist < closestDistance then
-					closestPlayer, closestDistance = player, dist
-				end
-			end
-		end
-	end
-	return closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head")
-end
-
-RunService.RenderStepped:Connect(function()
-	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-	if aiming then
-		local targetHead = getClosestHead()
-		if targetHead then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position) -- Insta-snap to target
-		end
-	end
-end)
-
--- Insert Key Toggle GUI
-UserInputService.InputBegan:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.Insert then
-		gui.Enabled = not gui.Enabled
-	end
-end)
-
---name text thing
 local healthText = {}
 local nameText = {}
 
@@ -244,65 +18,65 @@ function updateHealth(player)
 
 	local head = player.Character.Head
 	local humanoid = player.Character.Humanoid
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0)) --adjust height
-	
-	if onScreen then
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.3, 0)) -- moved up here
+
 	if not healthText[player] then
-	healthText[player] = Drawing.new("Text")
-	healthText[player].Size = 20
-	healthText[player].Color = Color3.fromRGB(255, 0, 0)
-	healthText[player].Outline = true
+		local bar = Drawing.new("Line")
+		bar.Thickness = 2
+		bar.Color = Color3.fromRGB(0, 255, 0)
+		bar.Visible = true
+		healthText[player] = bar
 	end
-	healthText[player].Position = Vector2.new(screenPos.X, screenPos.Y)
-	healthText[player].Text = "Health: " .. math.floor(humanoid.Health) .. " HP"
-	healthText[player].Visible = true
+
+	local bar = healthText[player]
+	if onScreen and humanoid.Health > 0 then
+		local healthPercent = humanoid.Health / humanoid.MaxHealth
+		bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
+		bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
+		bar.Visible = true
 	else
-	if healthText[player] then
-	healthText[player].Visible = false
+		bar.Visible = false
 	end
-	end
-	end
-	
-	function updateName(player)
+end
+
+function updateName(player)
 	if not nameTextEnabled then return end
 	if not player.Character or not player.Character:FindFirstChild("Head") then
-	if nameText[player] then
-	nameText[player]:Remove()
-	nameText[player] = nil
-	end
-	return
-	end
-	
-	pgsql
-	Copy
-	Edit
-	local head = player.Character.Head
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0)) -- adjust height
-	if onScreen then
-		if not nameText[player] then
-			nameText[player] = Drawing.new("Text")
-			nameText[player].Size = 20
-			nameText[player].Color = Color3.fromRGB(255, 255, 255)
-			nameText[player].Outline = true
-		end
-		nameText[player].Position = Vector2.new(screenPos.X, screenPos.Y)
-		nameText[player].Text = player.Name
-		nameText[player].Visible = true
-	else
 		if nameText[player] then
-			nameText[player].Visible = false
+			nameText[player]:Remove()
+			nameText[player] = nil
+		end
+		return
+	end
+
+	local head = player.Character.Head
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
+
+	if not nameText[player] then
+		local label = Drawing.new("Text")
+		label.Size = 14
+		label.Outline = true
+		label.Center = true
+		label.Color = Color3.fromRGB(255, 255, 255)
+		label.Visible = true
+		nameText[player] = label
+	end
+
+	local label = nameText[player]
+	if onScreen then
+		label.Position = Vector2.new(screenPos.X, screenPos.Y)
+		label.Text = player.Name
+		label.Visible = true
+	else
+		label.Visible = false
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			updateHealth(player)
+			updateName(player)
 		end
 	end
-	end
-	
-	Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function()
-	while player.Character and player.Character:FindFirstChild("Head") do
-	updateHealth(player)
-	updateName(player)
-	wait(1)
-	end
-	end)
-	end)
-
-
+end)

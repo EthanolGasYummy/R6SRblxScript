@@ -11,7 +11,7 @@ local fovIndex = 1
 local currentFov = fovSizes[fovIndex]
 
 local fovCircle = Drawing.new("Circle")
-fovCircle.Color = Color3.fromRGB(255, 255, 0)
+fovCircle.Color = Color3.fromRGB(160, 32, 240)
 fovCircle.Thickness = 2
 fovCircle.Transparency = 0.5
 fovCircle.Filled = false
@@ -37,7 +37,7 @@ gui.ResetOnSpawn = false
 local background = Instance.new("Frame")
 background.Size = UDim2.new(0, 220, 0, 200)
 background.Position = UDim2.new(0.5, -110, 0.5, -100)
-background.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+background.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
 background.BackgroundTransparency = 0.6
 background.BorderSizePixel = 0
 background.Parent = gui

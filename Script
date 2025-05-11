@@ -16,7 +16,7 @@ local guiFrame = Instance.new("Frame")
 guiFrame.Size = UDim2.new(0, 250, 0, 300)
 guiFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
 guiFrame.BackgroundTransparency = 0.6  -- 40% visibility
-guiFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+guiFrame.BackgroundColor3 = Color3.fromRGB(30, 60, 120)  -- Blue theme
 guiFrame.BorderSizePixel = 0
 guiFrame.Parent = ScreenGui
 
@@ -24,28 +24,6 @@ guiFrame.Parent = ScreenGui
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = guiFrame
-
--- 🟢 Title - Cheats Enabled
-local titleText = Instance.new("TextLabel")
-titleText.Text = "Cheats Enabled"
-titleText.Size = UDim2.new(0, 200, 0, 30)
-titleText.Position = UDim2.new(0.8, 0, 0, 10)
-titleText.TextSize = 24
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.BackgroundTransparency = 1
-titleText.TextStrokeTransparency = 0.5
-titleText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-titleText.Parent = ScreenGui
-
--- 🟩 ESP and Aimbot toggled states
-local espEnabled = false
-local aimbotEnabled = false
-
--- Rainbow Effect for "Cheats Enabled"
-local function updateRainbowTextColor()
-    local hue = tick() % 5 / 5
-    titleText.TextColor3 = Color3.fromHSV(hue, 1, 1)
-end
 
 -- 🟩 ESP Button
 local espToggleButton = Instance.new("TextButton")
@@ -85,12 +63,43 @@ addUICornerToButton(espToggleButton)
 addUICornerToButton(aimbotToggleButton)
 addUICornerToButton(fovButton)
 
--- FOV settings
+-- 🟦 GUI Dragging Logic
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    guiFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+guiFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = guiFrame.Position
+        input.Changed:Connect(function()
+            if not input.UserInputState == Enum.UserInputState.Change then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+guiFrame.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        update(input)
+    end
+end)
+
+-- 🟩 ESP and Aimbot toggled states
+local espEnabled = false
+local aimbotEnabled = false
+
+-- 🟠 Toggle FOV size
 local fovSizes = {80, 150, 250}
 local fovIndex = 1
 local currentFov = fovSizes[fovIndex]
 
--- 🟠 Draw the circle (FOV)
+-- 🟩 Draw the circle (FOV)
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 0)
 fovCircle.Thickness = 2
@@ -170,7 +179,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 🟢 Toggle ESP button
+-- 🟩 Toggle ESP button
 espToggleButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
     if espEnabled then
@@ -178,7 +187,6 @@ espToggleButton.MouseButton1Click:Connect(function()
     else
         espToggleButton.Text = "Toggle ESP (OFF)"
     end
-    updateCheatsStatus()
 end)
 
 -- 🟠 Toggle Aimbot button
@@ -191,20 +199,14 @@ aimbotToggleButton.MouseButton1Click:Connect(function()
         aimbotToggleButton.Text = "Toggle Aimbot (OFF)"
         fovCircle.Visible = false  -- Hide FOV circle when Aimbot is turned off
     end
-    updateCheatsStatus()
 end)
 
--- 🟩 Update Cheats Enabled label to show all active cheats
-local function updateCheatsStatus()
-    local status = "Cheats Enabled: "
-    if espEnabled then status = status .. "ESP " end
-    if aimbotEnabled then status = status .. "Aimbot " end
+-- 🟩 Toggle the visibility of the GUI with Insert key
+local guiVisible = true
 
-    if status == "Cheats Enabled: " then
-        titleText.Text = "No Cheats Active"
-    else
-        titleText.Text = status
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        guiVisible = not guiVisible
+        ScreenGui.Enabled = guiVisible
     end
-end
-
---
+end)

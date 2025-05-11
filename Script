@@ -42,6 +42,7 @@ background.BackgroundTransparency = 0.3
 background.BorderSizePixel = 0
 background.Parent = gui
 background.Active = true
+background.Visible = true
 
 local dragging, dragInput, dragStart, startPos
 background.InputBegan:Connect(function(input)
@@ -78,11 +79,7 @@ local function createTabButton(text, yOffset, parent)
 	btn.Parent = parent
 	btn.AutoButtonColor = true
 	btn.BorderSizePixel = 0
-	btn.ClipsDescendants = true
-
-	local uicorner = Instance.new("UICorner", btn)
-	uicorner.CornerRadius = UDim.new(0, 6)
-
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 	return btn
 end
 
@@ -128,7 +125,6 @@ aimbotEnableBtn.Parent = aimbotTab
 aimbotEnableBtn.AutoButtonColor = true
 aimbotEnableBtn.BorderSizePixel = 0
 
--- Bone Selection for Aimbot Tab
 local boneSelectionBtn = Instance.new("TextButton")
 boneSelectionBtn.Size = UDim2.new(0, 200, 0, 40)
 boneSelectionBtn.Position = UDim2.new(0, 10, 0, 60)
@@ -156,6 +152,34 @@ espEnableBtn.Parent = visualsTab
 espEnableBtn.AutoButtonColor = true
 espEnableBtn.BorderSizePixel = 0
 
+-- Color Selector for ESP
+local colors = {
+	["Red"] = Color3.fromRGB(255, 0, 0),
+	["Green"] = Color3.fromRGB(0, 255, 0),
+	["Blue"] = Color3.fromRGB(0, 0, 255),
+	["Yellow"] = Color3.fromRGB(255, 255, 0),
+	["Purple"] = Color3.fromRGB(160, 32, 240),
+	["Orange"] = Color3.fromRGB(255, 165, 0),
+	["Cyan"] = Color3.fromRGB(0, 255, 255),
+	["Pink"] = Color3.fromRGB(255, 105, 180),
+	["White"] = Color3.fromRGB(255, 255, 255)
+}
+local colorNames = {}
+for k in pairs(colors) do table.insert(colorNames, k) end
+local currentColorIndex = 1
+
+local changeColorBtn = Instance.new("TextButton")
+changeColorBtn.Size = UDim2.new(0, 200, 0, 40)
+changeColorBtn.Position = UDim2.new(0, 10, 0, 60)
+changeColorBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
+changeColorBtn.TextColor3 = Color3.new(1,1,1)
+changeColorBtn.TextSize = 18
+changeColorBtn.Font = Enum.Font.SourceSansBold
+changeColorBtn.Text = "ESP Color: " .. colorNames[currentColorIndex]
+changeColorBtn.Parent = visualsTab
+changeColorBtn.AutoButtonColor = true
+changeColorBtn.BorderSizePixel = 0
+
 -- GUI Tab Switching
 espBtn.MouseButton1Click:Connect(function()
 	visualsTab.Visible = true
@@ -172,7 +196,7 @@ local espEnabled = true
 local aimbotEnabled = true
 
 -- ESP Logic
-local espColor = Color3.fromRGB(255, 0, 0)
+local espColor = colors[colorNames[currentColorIndex]]
 local highlights = {}
 
 function createCham(player)
@@ -208,6 +232,9 @@ UserInputService.InputBegan:Connect(function(input)
 		fovCircle.Radius = currentFov
 		fovText.Text = "FOV: " .. currentFov .. " 🎯"
 	end
+	if input.KeyCode == Enum.KeyCode.Insert then
+		background.Visible = not background.Visible
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -242,19 +269,16 @@ function getClosestBone()
 end
 
 RunService.RenderStepped:Connect(function()
-	-- Update FOV drawing
 	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 	fovCircle.Visible = aimbotEnabled
 	fovText.Visible = aimbotEnabled
 
-	-- ESP + name/health
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
 			if espEnabled then createCham(player) else removeCham(player) end
 		end
 	end
 
-	-- Aimbot logic
 	if aiming then
 		local target = getClosestBone()
 		if target then
@@ -263,7 +287,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- ESP and Aimbot Toggles
+-- Toggles and Color Change
 espEnableBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	espEnableBtn.Text = espEnabled and "Toggle ESP (ON)" or "Toggle ESP (OFF)"
@@ -274,18 +298,17 @@ aimbotEnableBtn.MouseButton1Click:Connect(function()
 	aimbotEnableBtn.Text = aimbotEnabled and "Toggle Aimbot (ON)" or "Toggle Aimbot (OFF)"
 end)
 
--- Bone Selection Button Logic
 boneSelectionBtn.MouseButton1Click:Connect(function()
-	if selectedBone == "Head" then
-		selectedBone = "Waist"
-		boneSelectionBtn.Text = "Bone: Waist"
-	else
-		selectedBone = "Head"
-		boneSelectionBtn.Text = "Bone: Head"
-	end
+	selectedBone = selectedBone == "Head" and "Waist" or "Head"
+	boneSelectionBtn.Text = "Bone: " .. selectedBone
 end)
 
--- Player left cleanup
-Players.PlayerRemoving:Connect(function(player)
-	removeCham(player)
+changeColorBtn.MouseButton1Click:Connect(function()
+	currentColorIndex = (currentColorIndex % #colorNames) + 1
+	local newColorName = colorNames[currentColorIndex]
+	espColor = colors[newColorName]
+	changeColorBtn.Text = "ESP Color: " .. newColorName
+	for _, h in pairs(highlights) do
+		h.FillColor = espColor
+	end
 end)

@@ -229,11 +229,6 @@ UserInputService.InputBegan:Connect(function(input)
 end)
 
 --name text thing
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-
 local healthText = {}
 local nameText = {}
 
@@ -249,65 +244,65 @@ function updateHealth(player)
 
 	local head = player.Character.Head
 	local humanoid = player.Character.Humanoid
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.3, 0)) -- moved up here
-
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0)) --adjust height
+	
+	if onScreen then
 	if not healthText[player] then
-		local bar = Drawing.new("Line")
-		bar.Thickness = 2
-		bar.Color = Color3.fromRGB(0, 255, 0)
-		bar.Visible = true
-		healthText[player] = bar
+	healthText[player] = Drawing.new("Text")
+	healthText[player].Size = 20
+	healthText[player].Color = Color3.fromRGB(255, 0, 0)
+	healthText[player].Outline = true
 	end
-
-	local bar = healthText[player]
-	if onScreen and humanoid.Health > 0 then
-		local healthPercent = humanoid.Health / humanoid.MaxHealth
-		bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
-		bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
-		bar.Visible = true
+	healthText[player].Position = Vector2.new(screenPos.X, screenPos.Y)
+	healthText[player].Text = "Health: " .. math.floor(humanoid.Health) .. " HP"
+	healthText[player].Visible = true
 	else
-		bar.Visible = false
+	if healthText[player] then
+	healthText[player].Visible = false
 	end
-end
-
-function updateName(player)
+	end
+	end
+	
+	function updateName(player)
 	if not nameTextEnabled then return end
 	if not player.Character or not player.Character:FindFirstChild("Head") then
-		if nameText[player] then
-			nameText[player]:Remove()
-			nameText[player] = nil
-		end
-		return
+	if nameText[player] then
+	nameText[player]:Remove()
+	nameText[player] = nil
 	end
-
+	return
+	end
+	
+	pgsql
+	Copy
+	Edit
 	local head = player.Character.Head
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
-
-	if not nameText[player] then
-		local label = Drawing.new("Text")
-		label.Size = 14
-		label.Outline = true
-		label.Center = true
-		label.Color = Color3.fromRGB(255, 255, 255)
-		label.Visible = true
-		nameText[player] = label
-	end
-
-	local label = nameText[player]
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0)) -- adjust height
 	if onScreen then
-		label.Position = Vector2.new(screenPos.X, screenPos.Y)
-		label.Text = player.Name
-		label.Visible = true
+		if not nameText[player] then
+			nameText[player] = Drawing.new("Text")
+			nameText[player].Size = 20
+			nameText[player].Color = Color3.fromRGB(255, 255, 255)
+			nameText[player].Outline = true
+		end
+		nameText[player].Position = Vector2.new(screenPos.X, screenPos.Y)
+		nameText[player].Text = player.Name
+		nameText[player].Visible = true
 	else
-		label.Visible = false
-	end
-end
-
-RunService.RenderStepped:Connect(function()
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			updateHealth(player)
-			updateName(player)
+		if nameText[player] then
+			nameText[player].Visible = false
 		end
 	end
-end)
+	end
+	
+	Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+	while player.Character and player.Character:FindFirstChild("Head") do
+	updateHealth(player)
+	updateName(player)
+	wait(1)
+	end
+	end)
+	end)
+
+

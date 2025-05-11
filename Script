@@ -9,97 +9,37 @@ local Drawing = Drawing or getgenv().Drawing
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
 ScreenGui.Enabled = true  -- Default to open when the script starts
-ScreenGui.ResetOnSpawn = false
 
--- GUI Container
-local guiFrame = Instance.new("Frame")
-guiFrame.Size = UDim2.new(0, 250, 0, 300)
-guiFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
-guiFrame.BackgroundTransparency = 0.6  -- 40% visibility
-guiFrame.BackgroundColor3 = Color3.fromRGB(30, 60, 120)  -- Blue theme
-guiFrame.BorderSizePixel = 0
-guiFrame.Parent = ScreenGui
-
--- Rounded Corners
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = guiFrame
-
--- 🟩 ESP Button
+-- ESP Toggle Button
 local espToggleButton = Instance.new("TextButton")
 espToggleButton.Size = UDim2.new(0, 200, 0, 50)
-espToggleButton.Position = UDim2.new(0, 10, 0, 60)
+espToggleButton.Position = UDim2.new(0, 10, 0, 10)
 espToggleButton.Text = "Toggle ESP"
-espToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-espToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-espToggleButton.Parent = guiFrame
+espToggleButton.Parent = ScreenGui
+local espEnabled = true
 
--- 🟧 Aimbot Button
+-- Aimbot Toggle Button
 local aimbotToggleButton = Instance.new("TextButton")
 aimbotToggleButton.Size = UDim2.new(0, 200, 0, 50)
-aimbotToggleButton.Position = UDim2.new(0, 10, 0, 120)
+aimbotToggleButton.Position = UDim2.new(0, 10, 0, 70)
 aimbotToggleButton.Text = "Toggle Aimbot"
-aimbotToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-aimbotToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-aimbotToggleButton.Parent = guiFrame
+aimbotToggleButton.Parent = ScreenGui
+local aimbotEnabled = true
 
--- 🟨 FOV Size Button
-local fovButton = Instance.new("TextButton")
-fovButton.Size = UDim2.new(0, 200, 0, 50)
-fovButton.Position = UDim2.new(0, 10, 0, 180)
-fovButton.Text = "Change FOV"
-fovButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-fovButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-fovButton.Parent = guiFrame
+-- Change ESP Color Button
+local colorButton = Instance.new("TextButton")
+colorButton.Size = UDim2.new(0, 200, 0, 50)
+colorButton.Position = UDim2.new(0, 10, 0, 130)
+colorButton.Text = "Change ESP Color"
+colorButton.Parent = ScreenGui
+local espColor = Color3.fromRGB(255, 0, 0)
 
--- 🟩 Rounded Button Corners
-local function addUICornerToButton(button)
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = button
-end
-
-addUICornerToButton(espToggleButton)
-addUICornerToButton(aimbotToggleButton)
-addUICornerToButton(fovButton)
-
--- 🟦 GUI Dragging Logic
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    guiFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-guiFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = guiFrame.Position
-        input.Changed:Connect(function()
-            if not input.UserInputState == Enum.UserInputState.Change then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-guiFrame.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        update(input)
-    end
-end)
-
--- 🟩 ESP and Aimbot toggled states
-local espEnabled = false
-local aimbotEnabled = false
-
--- 🟠 Toggle FOV size
+-- 🔁 FOV settings
 local fovSizes = {80, 150, 250}
 local fovIndex = 1
 local currentFov = fovSizes[fovIndex]
 
--- 🟩 Draw the circle (FOV)
+-- 🟠 Draw the circle (FOV)
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 0)
 fovCircle.Thickness = 2
@@ -119,94 +59,147 @@ fovText.Text = "FOV: " .. currentFov .. " 🎯"
 fovText.Visible = true
 
 -- 🔘 Toggle FOV size
-fovButton.MouseButton1Click:Connect(function()
-    fovIndex = fovIndex % #fovSizes + 1
-    currentFov = fovSizes[fovIndex]
-    fovCircle.Radius = currentFov
-    fovText.Text = "FOV: " .. currentFov .. " 🎯"
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Alt then
+		fovIndex = fovIndex % #fovSizes + 1
+		currentFov = fovSizes[fovIndex]
+		fovCircle.Radius = currentFov
+		fovText.Text = "FOV: " .. currentFov .. " 🎯"
+	end
+end)
+
+-- 🟥 Chams
+local highlights = {}
+
+function createCham(player)
+	if player.Character and not highlights[player] then
+		local highlight = Instance.new("Highlight")
+		highlight.Adornee = player.Character
+		highlight.FillColor = espColor
+		highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Parent = game.CoreGui
+		highlights[player] = highlight
+	end
+end
+
+function removeCham(player)
+	if highlights[player] then
+		highlights[player]:Destroy()
+		highlights[player] = nil
+	end
+end
+
+function refreshChams()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and espEnabled then
+			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				createCham(player)
+			else
+				removeCham(player)
+			end
+		else
+			removeCham(player)
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		refreshChams()
+		task.wait(1)
+	end
 end)
 
 -- 🧠 Aimbot logic
 local aiming = false
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
-        aiming = true
-    end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
+		aiming = true
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        aiming = false
-    end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		aiming = false
+	end
 end)
 
 function getClosestHead()
-    local closestPlayer = nil
-    local closestDistance = math.huge
+	local closestPlayer = nil
+	local closestDistance = math.huge
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local head = player.Character.Head
-            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+			local head = player.Character.Head
+			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
 
-            if onScreen then
-                local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+			if onScreen then
+				local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+				local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
 
-                -- Only use the player if they are inside the FOV circle
-                if dist < currentFov and dist < closestDistance then
-                    closestDistance = dist
-                    closestPlayer = player
-                end
-            end
-        end
-    end
+				-- Only use the player if they are inside the FOV circle
+				if dist < currentFov and dist < closestDistance then
+					closestDistance = dist
+					closestPlayer = player
+				end
+			end
+		end
+	end
 
-    if closestPlayer and closestPlayer.Character then
-        return closestPlayer.Character:FindFirstChild("Head")
-    end
+	if closestPlayer and closestPlayer.Character then
+		return closestPlayer.Character:FindFirstChild("Head")
+	end
 end
 
 RunService.RenderStepped:Connect(function()
-    fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
-    if aiming then
-        local targetHead = getClosestHead()
-        if targetHead then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
-        end
-    end
+	if aiming then
+		local targetHead = getClosestHead()
+		if targetHead then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
+		end
+	end
 end)
 
--- 🟩 Toggle ESP button
+-- 🖥️ GUI BUTTON FUNCTIONS
 espToggleButton.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    if espEnabled then
-        espToggleButton.Text = "Toggle ESP (ON)"
-    else
-        espToggleButton.Text = "Toggle ESP (OFF)"
-    end
+	espEnabled = not espEnabled
+	if espEnabled then
+		espToggleButton.Text = "Toggle ESP (ON)"
+	else
+		espToggleButton.Text = "Toggle ESP (OFF)"
+	end
 end)
 
--- 🟠 Toggle Aimbot button
 aimbotToggleButton.MouseButton1Click:Connect(function()
-    aimbotEnabled = not aimbotEnabled
-    if aimbotEnabled then
-        aimbotToggleButton.Text = "Toggle Aimbot (ON)"
-        fovCircle.Visible = true  -- Show FOV circle when Aimbot is turned on
-    else
-        aimbotToggleButton.Text = "Toggle Aimbot (OFF)"
-        fovCircle.Visible = false  -- Hide FOV circle when Aimbot is turned off
-    end
+	aimbotEnabled = not aimbotEnabled
+	if aimbotEnabled then
+		aimbotToggleButton.Text = "Toggle Aimbot (ON)"
+		fovCircle.Visible = true  -- Show FOV circle when Aimbot is turned on
+	else
+		aimbotToggleButton.Text = "Toggle Aimbot (OFF)"
+		fovCircle.Visible = false  -- Hide FOV circle when Aimbot is turned off
+	end
 end)
 
--- 🟩 Toggle the visibility of the GUI with Insert key
-local guiVisible = true
+colorButton.MouseButton1Click:Connect(function()
+	espColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			if highlights[player] then
+				highlights[player].FillColor = espColor
+			end
+		end
+	end
+end)
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Insert then
-        guiVisible = not guiVisible
-        ScreenGui.Enabled = guiVisible
-    end
+-- 🟢 Open/Close GUI with Insert key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.Insert then
+		ScreenGui.Enabled = not ScreenGui.Enabled
+	end
 end)

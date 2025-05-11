@@ -194,15 +194,18 @@ RunService.RenderStepped:Connect(function()
 		if humanoid then
 			local healthPercent = humanoid.Health / humanoid.MaxHealth
 			local healthWidth = 50 * healthPercent
+			local distance = (Camera.CFrame.Position - player.Character.HumanoidRootPart.Position).Magnitude
+			local scaledHealthWidth = math.clamp(healthWidth * (1 / distance), 10, 50)  -- Scale based on distance
 			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Health above head
 			if onScreen then
 				local healthBar = Drawing.new("Line")
 				healthBar.Color = Color3.fromRGB(0, 255, 0)
 				healthBar.Thickness = 5
 				healthBar.From = Vector2.new(headPos.X - 25, headPos.Y + 20)
-				healthBar.To = Vector2.new(headPos.X - 25 + healthWidth, headPos.Y + 20)
+				healthBar.To = Vector2.new(headPos.X - 25 + scaledHealthWidth, headPos.Y + 20)
 				healthBar.Visible = true
-			else
+
+				-- Delete health bar when not visible
 				healthBar.Visible = false
 			end
 		end
@@ -252,7 +255,7 @@ RunService.RenderStepped:Connect(function()
 	if aiming then
 		local targetHead = getClosestHead()
 		if targetHead then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position) -- Insta-snap
 		end
 	end
 end)

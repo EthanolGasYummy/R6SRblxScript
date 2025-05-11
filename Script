@@ -189,26 +189,22 @@ RunService.RenderStepped:Connect(function()
 			text.Visible = false
 		end
 
-		-- Health Bar
-		local healthBar = Drawing.new("Line")
-		healthBar.Color = Color3.fromRGB(0, 255, 0)
-		healthBar.Thickness = 5
-		healthBar.Visible = true
-
+		-- Health Bar as a line (Health bar)
 		local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 		if humanoid then
 			local healthPercent = humanoid.Health / humanoid.MaxHealth
 			local healthWidth = 50 * healthPercent
 			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Health above head
 			if onScreen then
+				local healthBar = Drawing.new("Line")
+				healthBar.Color = Color3.fromRGB(0, 255, 0)
+				healthBar.Thickness = 5
 				healthBar.From = Vector2.new(headPos.X - 25, headPos.Y + 20)
 				healthBar.To = Vector2.new(headPos.X - 25 + healthWidth, headPos.Y + 20)
 				healthBar.Visible = true
 			else
 				healthBar.Visible = false
 			end
-		else
-			healthBar.Visible = false
 		end
 	end
 end)

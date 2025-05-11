@@ -228,44 +228,75 @@ UserInputService.InputBegan:Connect(function(input)
 	end
 end)
 
--- Health and Name Text
+-- Updated Roblox ESP Script: Health and Name Text Above Heads (Non-Spamming)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
 local healthText = {}
 local nameText = {}
 
-function displayHealth(player)
-	if healthTextEnabled and player.Character and player.Character:FindFirstChild("Humanoid") then
+function updateHealth(player)
+	if not healthTextEnabled then return end
+	if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Head") then
+		local head = player.Character.Head
 		local humanoid = player.Character.Humanoid
-		local health = humanoid.Health
-		local maxHealth = humanoid.MaxHealth
-		local healthBar = Drawing.new("Line")
-		healthBar.Color = Color3.fromRGB(0, 255, 0)
-		healthBar.Thickness = 5
-		healthBar.From = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 3) -- Slightly above head
-		healthBar.To = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 3 + health / maxHealth * 5)
-		healthBar.Visible = true
-		healthText[player] = healthBar
+		local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
+
+		if not healthText[player] then
+			local bar = Drawing.new("Line")
+			bar.Thickness = 2
+			bar.Color = Color3.fromRGB(0, 255, 0)
+			bar.Visible = true
+			healthText[player] = bar
+		end
+
+		local bar = healthText[player]
+		if onScreen then
+			local healthPercent = humanoid.Health / humanoid.MaxHealth
+			bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
+			bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
+			bar.Visible = true
+		else
+			bar.Visible = false
+		end
 	end
 end
 
-function displayName(player)
-	if nameTextEnabled and player.Character and player.Character:FindFirstChild("Head") then
-		local nameLabel = Drawing.new("Text")
-		nameLabel.Text = player.Name
-		nameLabel.Position = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 20) -- Positioned above head
-		nameLabel.Size = 14
-		nameLabel.Outline = true
-		nameLabel.Color = Color3.fromRGB(255, 255, 255)
-		nameLabel.Visible = true
-		nameText[player] = nameLabel
+function updateName(player)
+	if not nameTextEnabled then return end
+	if player.Character and player.Character:FindFirstChild("Head") then
+		local head = player.Character.Head
+		local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
+
+		if not nameText[player] then
+			local label = Drawing.new("Text")
+			label.Size = 14
+			label.Outline = true
+			label.Center = true
+			label.Color = Color3.fromRGB(255, 255, 255)
+			label.Visible = true
+			nameText[player] = label
+		end
+
+		local label = nameText[player]
+		if onScreen then
+			label.Position = Vector2.new(screenPos.X, screenPos.Y)
+			label.Text = player.Name
+			label.Visible = true
+		else
+			label.Visible = false
+		end
 	end
 end
 
+-- Update loop
 task.spawn(function()
 	while true do
 		for _, player in pairs(Players:GetPlayers()) do
 			if player ~= LocalPlayer then
-				displayHealth(player)
-				displayName(player)
+				updateHealth(player)
+				updateName(player)
 			end
 		end
 		task.wait(0.1)

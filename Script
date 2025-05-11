@@ -35,8 +35,8 @@ gui.Name = "AimbotESPUI"
 gui.ResetOnSpawn = false
 
 local background = Instance.new("Frame")
-background.Size = UDim2.new(0, 220, 0, 260)
-background.Position = UDim2.new(0.5, -110, 0.5, -130)
+background.Size = UDim2.new(0, 500, 0, 300)
+background.Position = UDim2.new(0.5, -250, 0.5, -150)
 background.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
 background.BackgroundTransparency = 0.3
 background.BorderSizePixel = 0
@@ -65,16 +65,17 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
-local function createButton(text, yOffset)
+-- Tabs and Button Creation
+local function createTabButton(text, yOffset, parent)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 200, 0, 40)
+	btn.Size = UDim2.new(0, 100, 0, 40)
 	btn.Position = UDim2.new(0, 10, 0, yOffset)
 	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
 	btn.TextColor3 = Color3.new(1,1,1)
 	btn.TextSize = 18
 	btn.Font = Enum.Font.SourceSansBold
 	btn.Text = text
-	btn.Parent = background
+	btn.Parent = parent
 	btn.AutoButtonColor = true
 	btn.BorderSizePixel = 0
 	btn.ClipsDescendants = true
@@ -85,48 +86,93 @@ local function createButton(text, yOffset)
 	return btn
 end
 
--- GUI Logic States
-local espEnabled = true
-local aimbotEnabled = true
-local healthTextEnabled = true
-local nameTextEnabled = true
-local espColor = Color3.fromRGB(255, 0, 0)
+-- Tabs Setup
+local tabButtonFrame = Instance.new("Frame")
+tabButtonFrame.Size = UDim2.new(0, 120, 0, 300)
+tabButtonFrame.Position = UDim2.new(0, 0, 0, 0)
+tabButtonFrame.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
+tabButtonFrame.BackgroundTransparency = 0.5
+tabButtonFrame.BorderSizePixel = 0
+tabButtonFrame.Parent = background
+tabButtonFrame.Active = true
 
-local espBtn = createButton("Toggle ESP (ON)", 10)
-local aimbotBtn = createButton("Toggle Aimbot (ON)", 60)
-local healthBtn = createButton("Toggle Health Text (ON)", 110)
-local nameBtn = createButton("Toggle Name Text (ON)", 160)
-local colorBtn = createButton("Change ESP Color", 210)
+local aimbotTab = Instance.new("Frame")
+aimbotTab.Size = UDim2.new(0, 380, 0, 300)
+aimbotTab.Position = UDim2.new(0, 120, 0, 0)
+aimbotTab.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
+aimbotTab.BackgroundTransparency = 0.5
+aimbotTab.Visible = false
+aimbotTab.Parent = background
 
--- Button toggles
+local visualsTab = Instance.new("Frame")
+visualsTab.Size = UDim2.new(0, 380, 0, 300)
+visualsTab.Position = UDim2.new(0, 120, 0, 0)
+visualsTab.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
+visualsTab.BackgroundTransparency = 0.5
+visualsTab.Visible = true
+visualsTab.Parent = background
+
+local espBtn = createTabButton("ESP", 10, tabButtonFrame)
+local aimbotBtn = createTabButton("Aimbot", 60, tabButtonFrame)
+
+-- Buttons for Aimbot Tab
+local aimbotEnableBtn = Instance.new("TextButton")
+aimbotEnableBtn.Size = UDim2.new(0, 200, 0, 40)
+aimbotEnableBtn.Position = UDim2.new(0, 10, 0, 10)
+aimbotEnableBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
+aimbotEnableBtn.TextColor3 = Color3.new(1,1,1)
+aimbotEnableBtn.TextSize = 18
+aimbotEnableBtn.Font = Enum.Font.SourceSansBold
+aimbotEnableBtn.Text = "Toggle Aimbot (ON)"
+aimbotEnableBtn.Parent = aimbotTab
+aimbotEnableBtn.AutoButtonColor = true
+aimbotEnableBtn.BorderSizePixel = 0
+
+-- Bone Selection for Aimbot Tab
+local boneSelectionBtn = Instance.new("TextButton")
+boneSelectionBtn.Size = UDim2.new(0, 200, 0, 40)
+boneSelectionBtn.Position = UDim2.new(0, 10, 0, 60)
+boneSelectionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
+boneSelectionBtn.TextColor3 = Color3.new(1, 1, 1)
+boneSelectionBtn.TextSize = 18
+boneSelectionBtn.Font = Enum.Font.SourceSansBold
+boneSelectionBtn.Text = "Bone: Head"
+boneSelectionBtn.Parent = aimbotTab
+boneSelectionBtn.AutoButtonColor = true
+boneSelectionBtn.BorderSizePixel = 0
+
+local selectedBone = "Head"
+
+-- Buttons for Visuals Tab
+local espEnableBtn = Instance.new("TextButton")
+espEnableBtn.Size = UDim2.new(0, 200, 0, 40)
+espEnableBtn.Position = UDim2.new(0, 10, 0, 10)
+espEnableBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 80)
+espEnableBtn.TextColor3 = Color3.new(1,1,1)
+espEnableBtn.TextSize = 18
+espEnableBtn.Font = Enum.Font.SourceSansBold
+espEnableBtn.Text = "Toggle ESP (ON)"
+espEnableBtn.Parent = visualsTab
+espEnableBtn.AutoButtonColor = true
+espEnableBtn.BorderSizePixel = 0
+
+-- GUI Tab Switching
 espBtn.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-	espBtn.Text = espEnabled and "Toggle ESP (ON)" or "Toggle ESP (OFF)"
+	visualsTab.Visible = true
+	aimbotTab.Visible = false
 end)
 
 aimbotBtn.MouseButton1Click:Connect(function()
-	aimbotEnabled = not aimbotEnabled
-	aimbotBtn.Text = aimbotEnabled and "Toggle Aimbot (ON)" or "Toggle Aimbot (OFF)"
+	visualsTab.Visible = false
+	aimbotTab.Visible = true
 end)
 
-healthBtn.MouseButton1Click:Connect(function()
-	healthTextEnabled = not healthTextEnabled
-	healthBtn.Text = healthTextEnabled and "Toggle Health Text (ON)" or "Toggle Health Text (OFF)"
-end)
+-- GUI Logic States
+local espEnabled = true
+local aimbotEnabled = true
 
-nameBtn.MouseButton1Click:Connect(function()
-	nameTextEnabled = not nameTextEnabled
-	nameBtn.Text = nameTextEnabled and "Toggle Name Text (ON)" or "Toggle Name Text (OFF)"
-end)
-
-colorBtn.MouseButton1Click:Connect(function()
-	espColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
-	for _, v in pairs(highlights) do
-		v.FillColor = espColor
-	end
-end)
-
--- Cham Logic
+-- ESP Logic
+local espColor = Color3.fromRGB(255, 0, 0)
 local highlights = {}
 
 function createCham(player)
@@ -134,7 +180,7 @@ function createCham(player)
 		local h = Instance.new("Highlight")
 		h.Adornee = player.Character
 		h.FillColor = espColor
-		h.OutlineColor = Color3.fromRGB(0,0,0)
+		h.OutlineColor = Color3.fromRGB(0, 0, 0)
 		h.FillTransparency = 0.4
 		h.OutlineTransparency = 0
 		h.Parent = game.CoreGui
@@ -149,82 +195,9 @@ function removeCham(player)
 	end
 end
 
--- Text drawing
-local healthText = {}
-local nameText = {}
-
-function updateHealth(player)
-	if not healthTextEnabled then
-		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
-		return
-	end
-
-	if not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
-		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
-		return
-	end
-
-	local head = player.Character.Head
-	local humanoid = player.Character.Humanoid
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
-
-	if not healthText[player] then
-		local bar = Drawing.new("Line")
-		bar.Thickness = 2
-		bar.Color = Color3.fromRGB(0, 255, 0)
-		bar.Visible = true
-		healthText[player] = bar
-	end
-
-	local bar = healthText[player]
-	if onScreen and humanoid.Health > 0 then
-		local hpRatio = humanoid.Health / humanoid.MaxHealth
-		local height = 50
-		local fullY = screenPos.Y - height / 2
-		bar.From = Vector2.new(screenPos.X - 40, fullY + height)
-		bar.To = Vector2.new(screenPos.X - 40, fullY + height * (1 - hpRatio))
-		bar.Visible = true
-	else
-		bar.Visible = false
-	end
-end
-
-function updateName(player)
-	if not nameTextEnabled then
-		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
-		return
-	end
-
-	if not player.Character or not player.Character:FindFirstChild("Head") then
-		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
-		return
-	end
-
-	local head = player.Character.Head
-	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
-
-	if not nameText[player] then
-		local label = Drawing.new("Text")
-		label.Size = 14
-		label.Outline = true
-		label.Center = true
-		label.Color = Color3.fromRGB(255, 255, 255)
-		label.Visible = true
-		nameText[player] = label
-	end
-
-	local label = nameText[player]
-	if onScreen then
-		label.Position = Vector2.new(screenPos.X, screenPos.Y)
-		label.Text = player.Name
-		label.Visible = true
-	else
-		label.Visible = false
-	end
-end
-
--- Aimbot
+-- Aimbot Logic
 local aiming = false
+
 UserInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
 		aiming = true
@@ -243,17 +216,24 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-function getClosestHead()
+function getClosestBone()
 	local closest, dist = nil, math.huge
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-			local head = player.Character.Head
-			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-			if onScreen then
-				local mouse = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-				local d = (Vector2.new(screenPos.X, screenPos.Y) - mouse).Magnitude
-				if d < currentFov and d < dist then
-					closest, dist = head, d
+		if player ~= LocalPlayer and player.Character then
+			local bone
+			if selectedBone == "Head" and player.Character:FindFirstChild("Head") then
+				bone = player.Character.Head
+			elseif selectedBone == "Waist" and player.Character:FindFirstChild("HumanoidRootPart") then
+				bone = player.Character.HumanoidRootPart
+			end
+			if bone then
+				local screenPos, onScreen = Camera:WorldToViewportPoint(bone.Position)
+				if onScreen then
+					local mouse = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+					local d = (Vector2.new(screenPos.X, screenPos.Y) - mouse).Magnitude
+					if d < currentFov and d < dist then
+						closest, dist = bone, d
+					end
 				end
 			end
 		end
@@ -271,30 +251,41 @@ RunService.RenderStepped:Connect(function()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
 			if espEnabled then createCham(player) else removeCham(player) end
-			updateHealth(player)
-			updateName(player)
 		end
 	end
 
 	-- Aimbot logic
 	if aiming then
-		local target = getClosestHead()
+		local target = getClosestBone()
 		if target then
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
 		end
 	end
 end)
 
--- GUI toggle
-UserInputService.InputBegan:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.Insert then
-		gui.Enabled = not gui.Enabled
+-- ESP and Aimbot Toggles
+espEnableBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	espEnableBtn.Text = espEnabled and "Toggle ESP (ON)" or "Toggle ESP (OFF)"
+end)
+
+aimbotEnableBtn.MouseButton1Click:Connect(function()
+	aimbotEnabled = not aimbotEnabled
+	aimbotEnableBtn.Text = aimbotEnabled and "Toggle Aimbot (ON)" or "Toggle Aimbot (OFF)"
+end)
+
+-- Bone Selection Button Logic
+boneSelectionBtn.MouseButton1Click:Connect(function()
+	if selectedBone == "Head" then
+		selectedBone = "Waist"
+		boneSelectionBtn.Text = "Bone: Waist"
+	else
+		selectedBone = "Head"
+		boneSelectionBtn.Text = "Bone: Head"
 	end
 end)
 
 -- Player left cleanup
 Players.PlayerRemoving:Connect(function(player)
 	removeCham(player)
-	if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
-	if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
 end)

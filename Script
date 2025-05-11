@@ -6,7 +6,7 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 -- Drawing FOV
-local fovSizes = {80, 150, 250}
+local fovSizes = {80, 120, 180} -- FOV sizes to cycle through
 local fovIndex = 1
 local currentFov = fovSizes[fovIndex]
 
@@ -35,8 +35,8 @@ gui.Name = "AimbotESPUI"
 gui.ResetOnSpawn = false
 
 local background = Instance.new("Frame")
-background.Size = UDim2.new(0, 220, 0, 200)
-background.Position = UDim2.new(0.5, -110, 0.5, -100)
+background.Size = UDim2.new(0, 220, 0, 260)
+background.Position = UDim2.new(0.5, -110, 0.5, -130)
 background.BackgroundColor3 = Color3.fromRGB(0, 50, 50)
 background.BackgroundTransparency = 0.3
 background.BorderSizePixel = 0
@@ -85,15 +85,19 @@ local function createButton(text, yOffset)
 	return btn
 end
 
+-- GUI button handlers
 local espEnabled = true
 local aimbotEnabled = true
+local healthTextEnabled = true
+local nameTextEnabled = true
 local espColor = Color3.fromRGB(255, 0, 0)
 local highlights = {}
-local espTexts = {}
 
 local espBtn = createButton("Toggle ESP (ON)", 10)
 local aimbotBtn = createButton("Toggle Aimbot (ON)", 60)
-local colorBtn = createButton("Change ESP Color", 110)
+local healthBtn = createButton("Toggle Health Text (ON)", 110)
+local nameBtn = createButton("Toggle Name Text (ON)", 160)
+local colorBtn = createButton("Change ESP Color", 210)
 
 espBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
@@ -103,7 +107,16 @@ end)
 aimbotBtn.MouseButton1Click:Connect(function()
 	aimbotEnabled = not aimbotEnabled
 	aimbotBtn.Text = aimbotEnabled and "Toggle Aimbot (ON)" or "Toggle Aimbot (OFF)"
-	fovCircle.Visible = aimbotEnabled
+end)
+
+healthBtn.MouseButton1Click:Connect(function()
+	healthTextEnabled = not healthTextEnabled
+	healthBtn.Text = healthTextEnabled and "Toggle Health Text (ON)" or "Toggle Health Text (OFF)"
+end)
+
+nameBtn.MouseButton1Click:Connect(function()
+	nameTextEnabled = not nameTextEnabled
+	nameBtn.Text = nameTextEnabled and "Toggle Name Text (ON)" or "Toggle Name Text (OFF)"
 end)
 
 colorBtn.MouseButton1Click:Connect(function()
@@ -127,26 +140,12 @@ function createCham(player)
 		highlight.Parent = game.CoreGui
 		highlights[player] = highlight
 	end
-
-	if player.Character and not espTexts[player] then
-		local text = Drawing.new("Text")
-		text.Size = 16
-		text.Center = true
-		text.Outline = true
-		text.Color = espColor
-		text.Visible = true
-		espTexts[player] = text
-	end
 end
 
 function removeCham(player)
 	if highlights[player] then
 		highlights[player]:Destroy()
 		highlights[player] = nil
-	end
-	if espTexts[player] then
-		espTexts[player]:Remove()
-		espTexts[player] = nil
 	end
 end
 
@@ -171,49 +170,9 @@ task.spawn(function()
 	end
 end)
 
-RunService.RenderStepped:Connect(function()
-	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-
-	for player, text in pairs(espTexts) do
-		if player and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and espEnabled then
-			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Move name above head
-			if onScreen then
-				text.Position = Vector2.new(headPos.X, headPos.Y)
-				text.Text = player.DisplayName
-				text.Color = espColor
-				text.Visible = true
-			else
-				text.Visible = false
-			end
-		elseif text then
-			text.Visible = false
-		end
-
-		-- Health Bar as a line (Health bar)
-		local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-		if humanoid then
-			local healthPercent = humanoid.Health / humanoid.MaxHealth
-			local healthWidth = 50 * healthPercent
-			local distance = (Camera.CFrame.Position - player.Character.HumanoidRootPart.Position).Magnitude
-			local scaledHealthWidth = math.clamp(healthWidth * (1 / distance), 10, 50)  -- Scale based on distance
-			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Health above head
-			if onScreen then
-				local healthBar = Drawing.new("Line")
-				healthBar.Color = Color3.fromRGB(0, 255, 0)
-				healthBar.Thickness = 5
-				healthBar.From = Vector2.new(headPos.X - 25, headPos.Y + 20)
-				healthBar.To = Vector2.new(headPos.X - 25 + scaledHealthWidth, headPos.Y + 20)
-				healthBar.Visible = true
-
-				-- Delete health bar when not visible
-				healthBar.Visible = false
-			end
-		end
-	end
-end)
-
 -- Aimbot
 local aiming = false
+local targetPlayer = nil
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
@@ -230,6 +189,7 @@ end)
 UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
 		aiming = false
+		targetPlayer = nil -- Remove targeting when right-click is released
 	end
 end)
 
@@ -252,10 +212,11 @@ function getClosestHead()
 end
 
 RunService.RenderStepped:Connect(function()
+	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 	if aiming then
 		local targetHead = getClosestHead()
 		if targetHead then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position) -- Insta-snap
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position) -- Insta-snap to target
 		end
 	end
 end)
@@ -264,5 +225,49 @@ end)
 UserInputService.InputBegan:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.Insert then
 		gui.Enabled = not gui.Enabled
+	end
+end)
+
+-- Health and Name Text
+local healthText = {}
+local nameText = {}
+
+function displayHealth(player)
+	if healthTextEnabled and player.Character and player.Character:FindFirstChild("Humanoid") then
+		local humanoid = player.Character.Humanoid
+		local health = humanoid.Health
+		local maxHealth = humanoid.MaxHealth
+		local healthBar = Drawing.new("Line")
+		healthBar.Color = Color3.fromRGB(0, 255, 0)
+		healthBar.Thickness = 5
+		healthBar.From = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 3) -- Slightly above head
+		healthBar.To = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 3 + health / maxHealth * 5)
+		healthBar.Visible = true
+		healthText[player] = healthBar
+	end
+end
+
+function displayName(player)
+	if nameTextEnabled and player.Character and player.Character:FindFirstChild("Head") then
+		local nameLabel = Drawing.new("Text")
+		nameLabel.Text = player.Name
+		nameLabel.Position = Vector2.new(player.Character.Head.Position.X, player.Character.Head.Position.Y + 20) -- Positioned above head
+		nameLabel.Size = 14
+		nameLabel.Outline = true
+		nameLabel.Color = Color3.fromRGB(255, 255, 255)
+		nameLabel.Visible = true
+		nameText[player] = nameLabel
+	end
+end
+
+task.spawn(function()
+	while true do
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer then
+				displayHealth(player)
+				displayName(player)
+			end
+		end
+		task.wait(0.1)
 	end
 end)

@@ -228,7 +228,7 @@ UserInputService.InputBegan:Connect(function(input)
 	end
 end)
 
--- Smooth and Clean ESP: Name and Health Bar (No Lag, No Stuck UI)
+--name text thing
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -237,19 +237,20 @@ local RunService = game:GetService("RunService")
 local healthText = {}
 local nameText = {}
 
-function updateESP(player)
-	local character = player.Character
-	if not character or not character:FindFirstChild("Head") or not character:FindFirstChild("Humanoid") then
-		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
-		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
+function updateHealth(player)
+	if not healthTextEnabled then return end
+	if not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
+		if healthText[player] then
+			healthText[player]:Remove()
+			healthText[player] = nil
+		end
 		return
 	end
 
-	local head = character.Head
-	local humanoid = character.Humanoid
+	local head = player.Character.Head
+	local humanoid = player.Character.Humanoid
 	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
 
-	-- Health Bar
 	if not healthText[player] then
 		local bar = Drawing.new("Line")
 		bar.Thickness = 2
@@ -260,15 +261,28 @@ function updateESP(player)
 
 	local bar = healthText[player]
 	if onScreen and humanoid.Health > 0 then
-		local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+		local healthPercent = humanoid.Health / humanoid.MaxHealth
 		bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
 		bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
 		bar.Visible = true
 	else
 		bar.Visible = false
 	end
+end
 
-	-- Name Text
+function updateName(player)
+	if not nameTextEnabled then return end
+	if not player.Character or not player.Character:FindFirstChild("Head") then
+		if nameText[player] then
+			nameText[player]:Remove()
+			nameText[player] = nil
+		end
+		return
+	end
+
+	local head = player.Character.Head
+	local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 3.5, 0))
+
 	if not nameText[player] then
 		local label = Drawing.new("Text")
 		label.Size = 14
@@ -280,8 +294,8 @@ function updateESP(player)
 	end
 
 	local label = nameText[player]
-	if onScreen and humanoid.Health > 0 then
-		label.Position = Vector2.new(screenPos.X, screenPos.Y - 15)
+	if onScreen then
+		label.Position = Vector2.new(screenPos.X, screenPos.Y)
 		label.Text = player.Name
 		label.Visible = true
 	else
@@ -289,25 +303,12 @@ function updateESP(player)
 	end
 end
 
--- Frame-based Update for Smooth Movement
+-- Frame-by-frame smooth update
 RunService.RenderStepped:Connect(function()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
-			updateESP(player)
-		end
-	end
-
-	-- Cleanup ESP for players that left
-	for player, text in pairs(nameText) do
-		if not Players:FindFirstChild(player.Name) then
-			text:Remove()
-			nameText[player] = nil
-		end
-	end
-	for player, line in pairs(healthText) do
-		if not Players:FindFirstChild(player.Name) then
-			line:Remove()
-			healthText[player] = nil
+			updateHealth(player)
+			updateName(player)
 		end
 	end
 end)

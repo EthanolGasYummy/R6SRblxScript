@@ -5,21 +5,21 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Drawing FOV
-local fovSizes = {80, 120, 180} -- FOV sizes to cycle through
+-- FOV settings
+local fovSizes = {80, 120, 180}
 local fovIndex = 1
 local currentFov = fovSizes[fovIndex]
 
+-- Drawing FOV
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(160, 32, 240)
 fovCircle.Thickness = 2
 fovCircle.Transparency = 0.5
 fovCircle.Filled = false
 fovCircle.Radius = currentFov
-fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 fovCircle.Visible = true
 
--- Text label for FOV
+-- FOV Text
 local fovText = Drawing.new("Text")
 fovText.Position = Vector2.new(10, Camera.ViewportSize.Y - 40)
 fovText.Size = 24
@@ -85,13 +85,12 @@ local function createButton(text, yOffset)
 	return btn
 end
 
--- GUI button handlers
+-- GUI Logic States
 local espEnabled = true
 local aimbotEnabled = true
 local healthTextEnabled = true
 local nameTextEnabled = true
 local espColor = Color3.fromRGB(255, 0, 0)
-local highlights = {}
 
 local espBtn = createButton("Toggle ESP (ON)", 10)
 local aimbotBtn = createButton("Toggle Aimbot (ON)", 60)
@@ -99,6 +98,7 @@ local healthBtn = createButton("Toggle Health Text (ON)", 110)
 local nameBtn = createButton("Toggle Name Text (ON)", 160)
 local colorBtn = createButton("Change ESP Color", 210)
 
+-- Button toggles
 espBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	espBtn.Text = espEnabled and "Toggle ESP (ON)" or "Toggle ESP (OFF)"
@@ -121,24 +121,24 @@ end)
 
 colorBtn.MouseButton1Click:Connect(function()
 	espColor = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and highlights[player] then
-			highlights[player].FillColor = espColor
-		end
+	for _, v in pairs(highlights) do
+		v.FillColor = espColor
 	end
 end)
 
 -- Cham Logic
+local highlights = {}
+
 function createCham(player)
 	if player.Character and not highlights[player] then
-		local highlight = Instance.new("Highlight")
-		highlight.Adornee = player.Character
-		highlight.FillColor = espColor
-		highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-		highlight.FillTransparency = 0.4
-		highlight.OutlineTransparency = 0
-		highlight.Parent = game.CoreGui
-		highlights[player] = highlight
+		local h = Instance.new("Highlight")
+		h.Adornee = player.Character
+		h.FillColor = espColor
+		h.OutlineColor = Color3.fromRGB(0,0,0)
+		h.FillTransparency = 0.4
+		h.OutlineTransparency = 0
+		h.Parent = game.CoreGui
+		highlights[player] = h
 	end
 end
 
@@ -149,101 +149,18 @@ function removeCham(player)
 	end
 end
 
-function refreshChams()
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and espEnabled then
-			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				createCham(player)
-			else
-				removeCham(player)
-			end
-		else
-			removeCham(player)
-		end
-	end
-end
-
-task.spawn(function()
-	while true do
-		refreshChams()
-		task.wait(1)
-	end
-end)
-
--- Aimbot
-local aiming = false
-local targetPlayer = nil
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
-		aiming = true
-	end
-	if input.KeyCode == Enum.KeyCode.LeftAlt then
-		fovIndex = (fovIndex % #fovSizes) + 1
-		currentFov = fovSizes[fovIndex]
-		fovCircle.Radius = currentFov
-		fovText.Text = "FOV: " .. currentFov .. " 🎯"
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		aiming = false
-		targetPlayer = nil -- Remove targeting when right-click is released
-	end
-end)
-
-function getClosestHead()
-	local closestPlayer, closestDistance = nil, math.huge
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-			local head = player.Character.Head
-			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-			if onScreen then
-				local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-				local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-				if dist < currentFov and dist < closestDistance then
-					closestPlayer, closestDistance = player, dist
-				end
-			end
-		end
-	end
-	return closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head")
-end
-
-RunService.RenderStepped:Connect(function()
-	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-	if aiming then
-		local targetHead = getClosestHead()
-		if targetHead then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position) -- Insta-snap to target
-		end
-	end
-end)
-
--- Insert Key Toggle GUI
-UserInputService.InputBegan:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.Insert then
-		gui.Enabled = not gui.Enabled
-	end
-end)
-
--- Health and Name Text
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-
+-- Text drawing
 local healthText = {}
 local nameText = {}
 
 function updateHealth(player)
-	if not healthTextEnabled then return end
+	if not healthTextEnabled then
+		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
+		return
+	end
+
 	if not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
-		if healthText[player] then
-			healthText[player]:Remove()
-			healthText[player] = nil
-		end
+		if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
 		return
 	end
 
@@ -261,9 +178,11 @@ function updateHealth(player)
 
 	local bar = healthText[player]
 	if onScreen and humanoid.Health > 0 then
-		local healthPercent = humanoid.Health / humanoid.MaxHealth
-		bar.From = Vector2.new(screenPos.X - 25, screenPos.Y)
-		bar.To = Vector2.new(screenPos.X - 25 + (50 * healthPercent), screenPos.Y)
+		local hpRatio = humanoid.Health / humanoid.MaxHealth
+		local height = 50
+		local fullY = screenPos.Y - height / 2
+		bar.From = Vector2.new(screenPos.X - 40, fullY + height)
+		bar.To = Vector2.new(screenPos.X - 40, fullY + height * (1 - hpRatio))
 		bar.Visible = true
 	else
 		bar.Visible = false
@@ -271,12 +190,13 @@ function updateHealth(player)
 end
 
 function updateName(player)
-	if not nameTextEnabled then return end
+	if not nameTextEnabled then
+		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
+		return
+	end
+
 	if not player.Character or not player.Character:FindFirstChild("Head") then
-		if nameText[player] then
-			nameText[player]:Remove()
-			nameText[player] = nil
-		end
+		if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
 		return
 	end
 
@@ -303,12 +223,78 @@ function updateName(player)
 	end
 end
 
--- Frame-by-frame smooth update
+-- Aimbot
+local aiming = false
+UserInputService.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
+		aiming = true
+	end
+	if input.KeyCode == Enum.KeyCode.LeftAlt then
+		fovIndex = (fovIndex % #fovSizes) + 1
+		currentFov = fovSizes[fovIndex]
+		fovCircle.Radius = currentFov
+		fovText.Text = "FOV: " .. currentFov .. " 🎯"
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		aiming = false
+	end
+end)
+
+function getClosestHead()
+	local closest, dist = nil, math.huge
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+			local head = player.Character.Head
+			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+			if onScreen then
+				local mouse = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+				local d = (Vector2.new(screenPos.X, screenPos.Y) - mouse).Magnitude
+				if d < currentFov and d < dist then
+					closest, dist = head, d
+				end
+			end
+		end
+	end
+	return closest
+end
+
 RunService.RenderStepped:Connect(function()
-	for _, player in pairs(Players:GetPlayers()) do
+	-- Update FOV drawing
+	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+	fovCircle.Visible = aimbotEnabled
+	fovText.Visible = aimbotEnabled
+
+	-- ESP + name/health
+	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
+			if espEnabled then createCham(player) else removeCham(player) end
 			updateHealth(player)
 			updateName(player)
 		end
 	end
+
+	-- Aimbot logic
+	if aiming then
+		local target = getClosestHead()
+		if target then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+		end
+	end
+end)
+
+-- GUI toggle
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Insert then
+		gui.Enabled = not gui.Enabled
+	end
+end)
+
+-- Player left cleanup
+Players.PlayerRemoving:Connect(function(player)
+	removeCham(player)
+	if healthText[player] then healthText[player]:Remove() healthText[player] = nil end
+	if nameText[player] then nameText[player]:Remove() nameText[player] = nil end
 end)

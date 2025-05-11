@@ -176,10 +176,10 @@ RunService.RenderStepped:Connect(function()
 
 	for player, text in pairs(espTexts) do
 		if player and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and espEnabled then
-			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 0.5, 0))
+			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Move name above head
 			if onScreen then
 				text.Position = Vector2.new(headPos.X, headPos.Y)
-				text.Text = player.DisplayName .. " [" .. math.floor(player.Character.Humanoid.Health) .. " HP]"
+				text.Text = player.DisplayName
 				text.Color = espColor
 				text.Visible = true
 			else
@@ -187,6 +187,28 @@ RunService.RenderStepped:Connect(function()
 			end
 		elseif text then
 			text.Visible = false
+		end
+
+		-- Health Bar
+		local healthBar = Drawing.new("Line")
+		healthBar.Color = Color3.fromRGB(0, 255, 0)
+		healthBar.Thickness = 5
+		healthBar.Visible = true
+
+		local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+		if humanoid then
+			local healthPercent = humanoid.Health / humanoid.MaxHealth
+			local healthWidth = 50 * healthPercent
+			local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position + Vector3.new(0, 1.5, 0)) -- Health above head
+			if onScreen then
+				healthBar.From = Vector2.new(headPos.X - 25, headPos.Y + 20)
+				healthBar.To = Vector2.new(headPos.X - 25 + healthWidth, headPos.Y + 20)
+				healthBar.Visible = true
+			else
+				healthBar.Visible = false
+			end
+		else
+			healthBar.Visible = false
 		end
 	end
 end)

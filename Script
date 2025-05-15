@@ -218,6 +218,26 @@ function removeCham(player)
 		highlights[player] = nil
 	end
 end
+function updateESP()
+	for _, player in ipairs(game.Players:GetPlayers()) do
+		if player ~= game.Players.LocalPlayer then
+			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				createCham(player)
+			else
+				removeCham(player)
+			end
+		end
+	end
+end
+
+-- Auto-refresh ESP every second
+task.spawn(function()
+	while true do
+		task.wait(1)
+		updateESP()
+	end
+end)
+
 
 -- Aimbot Logic
 local aiming = false

@@ -241,6 +241,8 @@ end)
 
 -- Aimbot Logic
 local aiming = false
+local stickyAim = false
+local stickyTarget = nil
 
 UserInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
@@ -300,11 +302,27 @@ RunService.RenderStepped:Connect(function()
 	end
 
 	if aiming then
-		local target = getClosestBone()
-		if target then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+	local target
+	if stickyAim and stickyTarget and stickyTarget:FindFirstChild("Humanoid") and stickyTarget.Humanoid.Health > 0 then
+		target = getClosestBoneFromPlayer(stickyTarget)
+	else
+		target = getClosestBone()
+		if stickyAim then
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player.Character and (player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")) then
+					local bone = selectedBone == "Head" and player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+					if bone == target then
+						stickyTarget = player
+					end
+				end
+			end
 		end
 	end
+	if target then
+		Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+	end
+end
+
 end)
 
 -- Toggles and Color Change

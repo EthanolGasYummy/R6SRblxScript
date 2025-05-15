@@ -139,6 +139,23 @@ boneSelectionBtn.BorderSizePixel = 0
 
 local selectedBone = "Head"
 
+local stickyAimBtn = Instance.new("TextButton")
+stickyAimBtn.Size = UDim2.new(0, 200, 0, 40)
+stickyAimBtn.Position = UDim2.new(0, 10, 0, 110)
+stickyAimBtn.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+stickyAimBtn.TextColor3 = Color3.new(1, 1, 1)
+stickyAimBtn.TextSize = 18
+stickyAimBtn.Font = Enum.Font.SourceSansBold
+stickyAimBtn.Text = "Sticky Aim (OFF)"
+stickyAimBtn.Parent = aimbotTab
+stickyAimBtn.AutoButtonColor = true
+stickyAimBtn.BorderSizePixel = 0
+
+stickyAimBtn.MouseButton1Click:Connect(function()
+	stickyAim = not stickyAim
+	stickyAimBtn.Text = "Sticky Aim (" .. (stickyAim and "ON" or "OFF") .. ")"
+end)
+
 -- Buttons for Visuals Tab
 local espEnableBtn = Instance.new("TextButton")
 espEnableBtn.Size = UDim2.new(0, 200, 0, 40)
@@ -307,6 +324,17 @@ RunService.RenderStepped:Connect(function()
 		target = getClosestBoneFromPlayer(stickyTarget)
 	else
 		target = getClosestBone()
+		function getClosestBoneFromPlayer(player)
+	if player and player.Character then
+		if selectedBone == "Head" and player.Character:FindFirstChild("Head") then
+			return player.Character.Head
+		elseif selectedBone == "Waist" and player.Character:FindFirstChild("HumanoidRootPart") then
+			return player.Character.HumanoidRootPart
+		end
+	end
+	return nil
+end
+
 		if stickyAim then
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player.Character and (player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")) then
